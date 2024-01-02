@@ -31,6 +31,17 @@ func defaultOptions(issuer string) *Options {
 // Option for the Verifier
 type Option func(*Options)
 
+// Jwt is an implementation independent representation of a JWT that is returned to consumers of our APIs.
+type Jwt struct {
+	Claims map[string]any
+}
+
+// newJwtFromToken creates our Jwt struct from a jwt.Token.
+func newJwtFromToken(token *jwt.Token) *Jwt {
+	claims := token.Claims.(jwt.MapClaims)
+	return &Jwt{Claims: claims}
+}
+
 // Verifier is the implementation of the Okta JWT verification logic.
 type Verifier struct {
 	keyfuncProvider keyfunc.Provider
@@ -49,7 +60,7 @@ func NewVerifier(issuer string, clientId string, options ...Option) *Verifier {
 }
 
 // VerifyIdToken verifies an Okta ID token.
-func (v *Verifier) VerifyIdToken(ctx context.Context, idToken string) (*jwt.Token, error) {
+func (v *Verifier) VerifyIdToken(ctx context.Context, idToken string) (*Jwt, error) {
 	token, err := v.parseToken(ctx, idToken)
 	if err != nil {
 		return nil, fmt.Errorf("verifying id token: %w", err)
@@ -66,21 +77,21 @@ func (v *Verifier) VerifyIdToken(ctx context.Context, idToken string) (*jwt.Toke
 		return nil, fmt.Errorf("verifying token nonce: no nonce found")
 	}
 
-	return token, nil
+	return newJwtFromToken(token), nil
 }
 
 // VerifyAccessToken verifies an Okta access token.
-func (v *Verifier) VerifyAccessToken(ctx context.Context, accessToken string) (*jwt.Token, error) {
-	jwt, err := v.parseToken(ctx, accessToken)
+func (v *Verifier) VerifyAccessToken(ctx context.Context, accessToken string) (*Jwt, error) {
+	token, err := v.parseToken(ctx, accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("verifying access token: %w", err)
 	}
 
-	if err = v.validateCommonClaims(ctx, jwt); err != nil {
+	if err = v.validateCommonClaims(ctx, token); err != nil {
 		return nil, fmt.Errorf("validating claims: %w", err)
 	}
 
-	return jwt, nil
+	return newJwtFromToken(token), nil
 }
 
 func (v *Verifier) parseToken(ctx context.Context, tokenString string) (*jwt.Token, error) {
