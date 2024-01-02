@@ -163,6 +163,33 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("verify valid access with groups claims", func(t *testing.T) {
+		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+			"iss":    issuer,
+			"aud":    clientId,
+			"iat":    time.Now().Unix(),
+			"exp":    time.Now().Add(24 * time.Hour).Unix(),
+			"groups": []string{"test1", "test2"},
+		})
+		token.Header["kid"] = oktatest.KID
+		idToken, err := token.SignedString(pk)
+		require.NoError(t, err)
+
+		result, err := v.VerifyAccessToken(ctx, idToken)
+		require.NoError(t, err)
+
+		var groups []string
+		groupIntfSlice, ok := result.Claims["groups"].([]interface{})
+		require.True(t, ok)
+		for _, groupIntf := range groupIntfSlice {
+			group, ok := groupIntf.(string)
+			require.True(t, ok)
+			groups = append(groups, group)
+		}
+
+		require.Equal(t, []string{"test1", "test2"}, groups)
+	})
+
 	t.Run("verify access token missing issuer", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"aud": clientId,
