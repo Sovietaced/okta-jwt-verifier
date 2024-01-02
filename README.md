@@ -5,4 +5,4 @@
 [![Go Report](https://goreportcard.com/badge/github.com/sovietaced/okta-jwt-verifier)](https://goreportcard.com/report/github.com/sovietaced/okta-jwt-verifier)
 
 Alternative implementation to the official [okta-jwt-verifier](https://github.com/okta/okta-jwt-verifier-golang) that 
-includes support for telemetry (ie. OpenTelemetry) and minimizing latency. 
+includes support for telemetry (ie. OpenTelemetry), minimizing operational latency, and testability. 
