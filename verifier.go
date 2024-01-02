@@ -28,9 +28,10 @@ func defaultOptions(issuer string) *Options {
 	return opts
 }
 
-// Option for the OktaMetadataProvider
+// Option for the Verifier
 type Option func(*Options)
 
+// Verifier is the implementation of the Okta JWT verification logic.
 type Verifier struct {
 	keyfuncProvider keyfunc.Provider
 	issuer          string
@@ -49,64 +50,40 @@ func NewVerifier(issuer string, clientId string, options ...Option) *Verifier {
 
 // VerifyIdToken verifies an Okta ID token.
 func (v *Verifier) VerifyIdToken(ctx context.Context, idToken string) (*jwt.Token, error) {
-	jwt, err := v.parseToken(ctx, idToken)
+	token, err := v.parseToken(ctx, idToken)
 	if err != nil {
 		return nil, fmt.Errorf("verifying id token: %w", err)
 	}
 
-	claims := jwt.Claims
+	if err = v.validateCommonClaims(ctx, token); err != nil {
+		return nil, fmt.Errorf("validating claims: %w", err)
+	}
 
-	jwtIssuer, err := claims.GetIssuer()
+	claims := token.Claims.(jwt.MapClaims)
+
+	_, exists := claims["nonce"]
+	if !exists {
+		return nil, fmt.Errorf("verifying token nonce: no nonce found")
+	}
+
+	return token, nil
+}
+
+// VerifyAccessToken verifies an Okta access token.
+func (v *Verifier) VerifyAccessToken(ctx context.Context, accessToken string) (*jwt.Token, error) {
+	jwt, err := v.parseToken(ctx, accessToken)
 	if err != nil {
-		return nil, fmt.Errorf("verifying id token issuer: %w", err)
+		return nil, fmt.Errorf("verifying access token: %w", err)
 	}
 
-	if jwtIssuer != v.issuer {
-		return nil, fmt.Errorf("verifying id token issuer: issuer '%s' in token does not match '%s'", jwtIssuer, v.issuer)
+	if err = v.validateCommonClaims(ctx, jwt); err != nil {
+		return nil, fmt.Errorf("validating claims: %w", err)
 	}
-
-	jwtAuds, err := claims.GetAudience()
-	if err != nil {
-		return nil, fmt.Errorf("veriying id token audience: %w", err)
-	}
-
-	matchFound := false
-	for _, jwtAud := range jwtAuds {
-		if jwtAud == v.clientId {
-			matchFound = true
-			break
-		}
-	}
-
-	if !matchFound {
-		return nil, fmt.Errorf("verifying id token audience: audience '%s' in token does not match '%s'", jwtAuds, v.clientId)
-	}
-
-	jwtIat, err := claims.GetIssuedAt()
-	if err != nil {
-		return nil, fmt.Errorf("verifying id token issued time: %w", err)
-	}
-
-	if jwtIat == nil {
-		return nil, fmt.Errorf("verifying id token issued time: no issued time found")
-	}
-
-	jwtExp, err := claims.GetExpirationTime()
-	if err != nil {
-		return nil, fmt.Errorf("verifying id token expriation time: %w", err)
-	}
-
-	if jwtExp == nil {
-		return nil, fmt.Errorf("verifying id token expiration time: no expiration time found")
-	}
-
-	// FIXME: add support for nonce
 
 	return jwt, nil
 }
 
 func (v *Verifier) parseToken(ctx context.Context, tokenString string) (*jwt.Token, error) {
-
 	keyfunc, err := v.keyfuncProvider.GetKeyfunc(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting key function: %w", err)
@@ -118,4 +95,54 @@ func (v *Verifier) parseToken(ctx context.Context, tokenString string) (*jwt.Tok
 	}
 
 	return token, err
+}
+
+func (v *Verifier) validateCommonClaims(ctx context.Context, jwt *jwt.Token) error {
+	claims := jwt.Claims
+
+	jwtIssuer, err := claims.GetIssuer()
+	if err != nil {
+		return fmt.Errorf("verifying token issuer: %w", err)
+	}
+
+	if jwtIssuer != v.issuer {
+		return fmt.Errorf("verifying token issuer: issuer '%s' in token does not match '%s'", jwtIssuer, v.issuer)
+	}
+
+	jwtAuds, err := claims.GetAudience()
+	if err != nil {
+		return fmt.Errorf("veriying token audience: %w", err)
+	}
+
+	matchFound := false
+	for _, jwtAud := range jwtAuds {
+		if jwtAud == v.clientId {
+			matchFound = true
+			break
+		}
+	}
+
+	if !matchFound {
+		return fmt.Errorf("verifying token audience: audience '%s' in token does not match '%s'", jwtAuds, v.clientId)
+	}
+
+	jwtIat, err := claims.GetIssuedAt()
+	if err != nil {
+		return fmt.Errorf("verifying id token issued time: %w", err)
+	}
+
+	if jwtIat == nil {
+		return fmt.Errorf("verifying token issued time: no issued time found")
+	}
+
+	jwtExp, err := claims.GetExpirationTime()
+	if err != nil {
+		return fmt.Errorf("verifying token expriation time: %w", err)
+	}
+
+	if jwtExp == nil {
+		return fmt.Errorf("verifying token expiration time: no expiration time found")
+	}
+
+	return nil
 }
