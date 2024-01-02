@@ -9,7 +9,7 @@ includes support for telemetry (ie. OpenTelemetry), minimizing operational laten
 
 ## Examples
 
-### ID Token Validation
+### Access Token Validation
 
 ```go
 import (
@@ -24,7 +24,7 @@ func main() {
     v := verifier.NewVerifier(issuer, clientId)
 
     idToken := "..."
-    token, err := v.VerifyIdToken(ctx, idToken)
+    token, err := v.VerifyAccessToken(ctx, idToken)
 }
 
 ```
