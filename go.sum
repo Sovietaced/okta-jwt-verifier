@@ -1,5 +1,5 @@
-github.com/MicahParks/jwkset v0.5.4 h1:59s9OUNIKF3g+IXYm3pa4vPXXEudRNetyy3+H6KpKdw=
-github.com/MicahParks/jwkset v0.5.4/go.mod h1:fOx7dCX+XgPDzcRbZzi9DMY3vyebWXmsz7XPqstr3ms=
+github.com/MicahParks/jwkset v0.5.5 h1:1Pob9XuVJXoiRJn8kYtpwiYfi0hE35H5YpTq4UZLrPA=
+github.com/MicahParks/jwkset v0.5.5/go.mod h1:fOx7dCX+XgPDzcRbZzi9DMY3vyebWXmsz7XPqstr3ms=
 github.com/MicahParks/keyfunc/v3 v3.1.1 h1:ghC5jcuU4/TTQQ9Ns7TEVuhnscQOH+WL4//Jmsy5/DA=
 github.com/MicahParks/keyfunc/v3 v3.1.1/go.mod h1:Qmrhb9tkHX1i/kCiLAPDOCWIEfN9yq7u/tkP16lmLL8=
 github.com/benbjohnson/clock v1.3.5 h1:VvXlSJBzZpA/zum6Sj74hxwYI2DIxRWuNIoXAzHZz5o=
