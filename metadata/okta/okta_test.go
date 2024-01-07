@@ -19,7 +19,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-func TestMetadataProvider(t *testing.T) {
+func TestLazyMetadataProvider(t *testing.T) {
 
 	ctx := context.Background()
 
@@ -29,7 +29,8 @@ func TestMetadataProvider(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		mp := NewMetadataProvider(svr.URL)
+		mp, err := NewMetadataProvider(svr.URL)
+		require.NoError(t, err)
 
 		m, err := mp.GetMetadata(ctx)
 		require.NoError(t, err)
@@ -47,9 +48,10 @@ func TestMetadataProvider(t *testing.T) {
 		defer svr.Close()
 
 		fakeClock := clock.NewMock()
-		mp := NewMetadataProvider(svr.URL, withClock(fakeClock))
+		mp, err := NewMetadataProvider(svr.URL, withClock(fakeClock))
+		require.NoError(t, err)
 
-		_, err := mp.GetMetadata(ctx)
+		_, err = mp.GetMetadata(ctx)
 		require.NoError(t, err)
 		require.Equal(t, 1, serverCount)
 
@@ -83,11 +85,12 @@ func TestMetadataProvider(t *testing.T) {
 		)
 
 		httpClient := http.Client{Transport: tr}
-		mp := NewMetadataProvider(svr.URL, WithHttpClient(&httpClient))
+		mp, err := NewMetadataProvider(svr.URL, WithHttpClient(&httpClient))
+		require.NoError(t, err)
 
 		tracer := provider.Tracer("test")
 		spanCtx, span := tracer.Start(ctx, "test")
-		_, err := mp.GetMetadata(spanCtx)
+		_, err = mp.GetMetadata(spanCtx)
 		require.NoError(t, err)
 		span.End()
 
@@ -101,6 +104,62 @@ func TestMetadataProvider(t *testing.T) {
 
 		// Verify trace propagation through context
 		require.Equal(t, testSpan.SpanContext().SpanID(), httpSpan.Parent().SpanID())
+	})
+}
+
+func TestBackgroundMetadataProvider(t *testing.T) {
+
+	ctx := context.Background()
+
+	t.Run("get metadata success", func(t *testing.T) {
+		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(fixture(t, "metadata.json"))
+		}))
+		defer svr.Close()
+
+		backgroundCtx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
+
+		mp, err := NewMetadataProvider(svr.URL, WithFetchStrategy(Background), WithBackgroundCtx(backgroundCtx))
+		require.NoError(t, err)
+
+		m, err := mp.GetMetadata(ctx)
+		require.NoError(t, err)
+
+		expectedMetadata := metadata.Metadata{JwksUri: "https://test.okta.com/oauth2/v1/keys"}
+		require.Equal(t, expectedMetadata, m)
+	})
+
+	t.Run("get metadata and verify cached", func(t *testing.T) {
+		serverCount := 0
+		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			serverCount++
+			w.Write(fixture(t, "metadata.json"))
+		}))
+		defer svr.Close()
+
+		backgroundCtx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
+
+		fakeClock := clock.NewMock()
+		mp, err := NewMetadataProvider(svr.URL, withClock(fakeClock), WithFetchStrategy(Background), WithBackgroundCtx(backgroundCtx))
+		require.NoError(t, err)
+
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 1, serverCount)
+
+		// Get metadata again and ensure it is cached
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 1, serverCount)
+
+		// Fast forward time and invalidate the cache
+		fakeClock.Add(10 * time.Minute)
+
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 2, serverCount)
 	})
 }
 
