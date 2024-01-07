@@ -14,8 +14,11 @@ import (
 type FetchStrategy int64
 
 const (
-	Lazy       FetchStrategy = iota // Fetch new metadata inline with requests (when not cached)
-	Background                      // Fetch new metadata in the background regardless of requests being made
+	Lazy FetchStrategy = iota // Fetch new metadata inline with requests (when not cached)
+	// Background Fetch new metadata in the background regardless of requests being made. This option was designed
+	// for eliminating in-line metadata calls and minimizing latency in production use. Warning: this option will
+	// attempt to seed metadata on initialization and block.
+	Background
 
 	DefaultCacheTtl = 5 * time.Minute
 )
