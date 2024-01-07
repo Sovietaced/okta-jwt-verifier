@@ -32,7 +32,8 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 	}
 
 	kp := okta.NewKeyfuncProvider(mp)
-	v := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	require.NoError(t, err)
 
 	t.Run("verify valid id token", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
@@ -160,7 +161,8 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 
 	t.Run("verify id token expiration with leeway", func(t *testing.T) {
 
-		lv := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		lv, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		require.NoError(t, err)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   issuer,
@@ -211,7 +213,8 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	}
 
 	kp := okta.NewKeyfuncProvider(mp)
-	v := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	require.NoError(t, err)
 
 	t.Run("verify valid access token", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
@@ -360,7 +363,8 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 
 	t.Run("verify access token expiration with leeway", func(t *testing.T) {
 
-		lv := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		lv, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		require.NoError(t, err)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   issuer,
