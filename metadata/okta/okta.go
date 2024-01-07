@@ -11,15 +11,22 @@ import (
 	"time"
 )
 
+type FetchStrategy int64
+
 const (
+	Lazy       FetchStrategy = iota // Fetch new metadata inline with requests (when not cached)
+	Background                      // Fetch new metadata in the background regardless of requests being made
+
 	DefaultCacheTtl = 5 * time.Minute
 )
 
 // Options are configurable options for the MetadataProvider.
 type Options struct {
-	httpClient *http.Client
-	cacheTtl   time.Duration
-	clock      clock.Clock
+	httpClient    *http.Client
+	cacheTtl      time.Duration
+	clock         clock.Clock
+	fetchStrategy FetchStrategy
+	backgroundCtx context.Context
 }
 
 // WithHttpClient allows for a configurable http client.
@@ -42,11 +49,28 @@ func withClock(clock clock.Clock) Option {
 	}
 }
 
+// WithFetchStrategy specifies a strategy for fetching new metadata.
+func WithFetchStrategy(fetchStrategy FetchStrategy) Option {
+	return func(mo *Options) {
+		mo.fetchStrategy = fetchStrategy
+	}
+}
+
+// WithBackgroundCtx specified the context to use in order to control the lifecycle of the background fetching
+// goroutine.
+func WithBackgroundCtx(ctx context.Context) Option {
+	return func(mo *Options) {
+		mo.backgroundCtx = ctx
+	}
+}
+
 func defaultOptions() *Options {
 	opts := &Options{}
 	WithHttpClient(http.DefaultClient)(opts)
 	withClock(clock.New())(opts)
 	WithCacheTtl(DefaultCacheTtl)(opts)
+	WithFetchStrategy(Lazy)(opts)
+	WithBackgroundCtx(context.Background())(opts)
 	return opts
 }
 
@@ -72,22 +96,34 @@ type MetadataProvider struct {
 	metadataMutex  sync.Mutex
 	cacheTtl       time.Duration
 	cachedMetadata *cachedMetadata
+	fetchStrategy  FetchStrategy
 }
 
 // NewMetadataProvider creates a new MetadataProvider for the specified Okta issuer.
-func NewMetadataProvider(issuer string, options ...Option) *MetadataProvider {
+func NewMetadataProvider(issuer string, options ...Option) (*MetadataProvider, error) {
 	opts := defaultOptions()
 	for _, option := range options {
 		option(opts)
 	}
 
 	metadataUrl := fmt.Sprintf("%s%s", issuer, "/.well-known/openid-configuration")
-	return &MetadataProvider{
-		metadataUrl: metadataUrl,
-		httpClient:  opts.httpClient,
-		clock:       opts.clock,
-		cacheTtl:    opts.cacheTtl,
+	mp := &MetadataProvider{
+		metadataUrl:   metadataUrl,
+		httpClient:    opts.httpClient,
+		clock:         opts.clock,
+		cacheTtl:      opts.cacheTtl,
+		fetchStrategy: opts.fetchStrategy,
 	}
+
+	if opts.fetchStrategy == Background {
+		_, err := mp.backgroundFetchAndCache(opts.backgroundCtx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to seed metadata: %w", err)
+		}
+		go mp.backgroundFetchLoop(opts.backgroundCtx)
+	}
+
+	return mp, nil
 }
 
 // GetMetadata gets metadata for the specified Okta issuer.
@@ -99,12 +135,21 @@ func (mp *MetadataProvider) GetMetadata(ctx context.Context) (metadata.Metadata,
 		return cachedMetadataCopy.m, nil
 	}
 
+	if mp.fetchStrategy == Lazy {
+		return mp.lazyFetchAndCache(ctx)
+	}
+
+	return metadata.Metadata{}, fmt.Errorf("no metadata available")
+
+}
+
+func (mp *MetadataProvider) lazyFetchAndCache(ctx context.Context) (metadata.Metadata, error) {
 	// Acquire a lock
 	mp.metadataMutex.Lock()
 	defer mp.metadataMutex.Unlock()
 
 	// Check for a race before continuing
-	cachedMetadataCopy = mp.cachedMetadata
+	cachedMetadataCopy := mp.cachedMetadata
 	if cachedMetadataCopy != nil && mp.clock.Now().Before(cachedMetadataCopy.expiration) {
 		return cachedMetadataCopy.m, nil
 	}
@@ -118,6 +163,44 @@ func (mp *MetadataProvider) GetMetadata(ctx context.Context) (metadata.Metadata,
 
 	mp.cachedMetadata = newCachedMetadata(expiration, newMetadata)
 	return mp.cachedMetadata.m, nil
+}
+
+func (mp *MetadataProvider) backgroundFetchAndCache(ctx context.Context) (metadata.Metadata, error) {
+	// Acquire a lock
+	mp.metadataMutex.Lock()
+	defer mp.metadataMutex.Unlock()
+
+	expiration := mp.clock.Now().Add(mp.cacheTtl)
+
+	newMetadata, err := mp.fetchMetadata(ctx)
+	if err != nil {
+		return metadata.Metadata{}, fmt.Errorf("failed to fetch new fresh metadata: %w", err)
+	}
+
+	mp.cachedMetadata = newCachedMetadata(expiration, newMetadata)
+	return mp.cachedMetadata.m, nil
+}
+
+func (mp *MetadataProvider) backgroundFetchLoop(ctx context.Context) {
+	// Seed cache initially
+	_, err := mp.backgroundFetchAndCache(ctx)
+	if err != nil {
+		// FIXME: log this
+	}
+
+	ticker := time.NewTicker(mp.cacheTtl / 2)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			_, err := mp.backgroundFetchAndCache(ctx)
+			if err != nil {
+				// FIXME: log this
+			}
+		}
+	}
 }
 
 func (mp *MetadataProvider) fetchMetadata(ctx context.Context) (metadata.Metadata, error) {

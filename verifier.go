@@ -35,11 +35,15 @@ func WithLeeway(leeway time.Duration) Option {
 	}
 }
 
-func defaultOptions(issuer string) *Options {
+func defaultOptions(issuer string) (*Options, error) {
 	opts := &Options{}
-	WithKeyfuncProvider(okta.NewKeyfuncProvider(oktametadata.NewMetadataProvider(issuer)))(opts)
+	mp, err := oktametadata.NewMetadataProvider(issuer)
+	if err != nil {
+		return nil, fmt.Errorf("creating default metadata provider: %w", err)
+	}
+	WithKeyfuncProvider(okta.NewKeyfuncProvider(mp))(opts)
 	WithLeeway(DefaultLeeway)(opts)
-	return opts
+	return opts, nil
 }
 
 // Option for the Verifier
@@ -65,8 +69,11 @@ type Verifier struct {
 }
 
 // NewVerifier creates a new Verifier for the specified issuer or client ID.
-func NewVerifier(issuer string, clientId string, options ...Option) *Verifier {
-	opts := defaultOptions(issuer)
+func NewVerifier(issuer string, clientId string, options ...Option) (*Verifier, error) {
+	opts, err := defaultOptions(issuer)
+	if err != nil {
+		return nil, fmt.Errorf("creating default options: %w", err)
+	}
 	for _, option := range options {
 		option(opts)
 	}
@@ -79,7 +86,7 @@ func NewVerifier(issuer string, clientId string, options ...Option) *Verifier {
 		jwt.WithExpirationRequired(),
 	)
 
-	return &Verifier{issuer: issuer, clientId: clientId, keyfuncProvider: opts.keyfuncProvider, parser: parser}
+	return &Verifier{issuer: issuer, clientId: clientId, keyfuncProvider: opts.keyfuncProvider, parser: parser}, nil
 }
 
 // VerifyIdToken verifies an Okta ID token.
