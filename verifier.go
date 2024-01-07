@@ -7,11 +7,17 @@ import (
 	"github.com/sovietaced/okta-jwt-verifier/keyfunc"
 	"github.com/sovietaced/okta-jwt-verifier/keyfunc/okta"
 	oktametadata "github.com/sovietaced/okta-jwt-verifier/metadata/okta"
+	"time"
+)
+
+const (
+	DefaultLeeway = 0 // Default leeway that is configured for JWT validation
 )
 
 // Options are configurable options for the Verifier.
 type Options struct {
 	keyfuncProvider keyfunc.Provider
+	leeway          time.Duration
 }
 
 // WithKeyfuncProvider allows for a configurable keyfunc.Provider, which may be useful if you want to customize
@@ -22,9 +28,17 @@ func WithKeyfuncProvider(keyfuncProvider keyfunc.Provider) Option {
 	}
 }
 
+// WithLeeway adds leeway to all time related validations.
+func WithLeeway(leeway time.Duration) Option {
+	return func(mo *Options) {
+		mo.leeway = leeway
+	}
+}
+
 func defaultOptions(issuer string) *Options {
 	opts := &Options{}
 	WithKeyfuncProvider(okta.NewKeyfuncProvider(oktametadata.NewMetadataProvider(issuer)))(opts)
+	WithLeeway(DefaultLeeway)(opts)
 	return opts
 }
 
@@ -44,6 +58,7 @@ func newJwtFromToken(token *jwt.Token) *Jwt {
 
 // Verifier is the implementation of the Okta JWT verification logic.
 type Verifier struct {
+	parser          *jwt.Parser
 	keyfuncProvider keyfunc.Provider
 	issuer          string
 	clientId        string
@@ -56,7 +71,15 @@ func NewVerifier(issuer string, clientId string, options ...Option) *Verifier {
 		option(opts)
 	}
 
-	return &Verifier{issuer: issuer, clientId: clientId, keyfuncProvider: opts.keyfuncProvider}
+	// Configure JWT parser
+	parser := jwt.NewParser(
+		jwt.WithLeeway(opts.leeway),
+		jwt.WithIssuer(issuer),
+		jwt.WithAudience(clientId),
+		jwt.WithExpirationRequired(),
+	)
+
+	return &Verifier{issuer: issuer, clientId: clientId, keyfuncProvider: opts.keyfuncProvider, parser: parser}
 }
 
 // VerifyIdToken verifies an Okta ID token.
@@ -100,7 +123,7 @@ func (v *Verifier) parseToken(ctx context.Context, tokenString string) (*jwt.Tok
 		return nil, fmt.Errorf("getting key function: %w", err)
 	}
 
-	token, err := jwt.Parse(tokenString, keyfunc)
+	token, err := v.parser.Parse(tokenString, keyfunc)
 	if err != nil {
 		return nil, fmt.Errorf("parsing token: %w", err)
 	}
@@ -108,34 +131,9 @@ func (v *Verifier) parseToken(ctx context.Context, tokenString string) (*jwt.Tok
 	return token, err
 }
 
+// validateCommonClaims validates claims that aren't validated natively by jwt.Parser
 func (v *Verifier) validateCommonClaims(ctx context.Context, jwt *jwt.Token) error {
 	claims := jwt.Claims
-
-	jwtIssuer, err := claims.GetIssuer()
-	if err != nil {
-		return fmt.Errorf("verifying token issuer: %w", err)
-	}
-
-	if jwtIssuer != v.issuer {
-		return fmt.Errorf("verifying token issuer: issuer '%s' in token does not match '%s'", jwtIssuer, v.issuer)
-	}
-
-	jwtAuds, err := claims.GetAudience()
-	if err != nil {
-		return fmt.Errorf("veriying token audience: %w", err)
-	}
-
-	matchFound := false
-	for _, jwtAud := range jwtAuds {
-		if jwtAud == v.clientId {
-			matchFound = true
-			break
-		}
-	}
-
-	if !matchFound {
-		return fmt.Errorf("verifying token audience: audience '%s' in token does not match '%s'", jwtAuds, v.clientId)
-	}
 
 	jwtIat, err := claims.GetIssuedAt()
 	if err != nil {
@@ -144,15 +142,6 @@ func (v *Verifier) validateCommonClaims(ctx context.Context, jwt *jwt.Token) err
 
 	if jwtIat == nil {
 		return fmt.Errorf("verifying token issued time: no issued time found")
-	}
-
-	jwtExp, err := claims.GetExpirationTime()
-	if err != nil {
-		return fmt.Errorf("verifying token expriation time: %w", err)
-	}
-
-	if jwtExp == nil {
-		return fmt.Errorf("verifying token expiration time: no expiration time found")
 	}
 
 	return nil

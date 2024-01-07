@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+const (
+	DefaultCacheTtl = 5 * time.Minute
+)
+
 // Options are configurable options for the MetadataProvider.
 type Options struct {
 	httpClient *http.Client
@@ -42,7 +46,7 @@ func defaultOptions() *Options {
 	opts := &Options{}
 	WithHttpClient(http.DefaultClient)(opts)
 	withClock(clock.New())(opts)
-	WithCacheTtl(5 * time.Minute)(opts)
+	WithCacheTtl(DefaultCacheTtl)(opts)
 	return opts
 }
 
@@ -78,7 +82,12 @@ func NewMetadataProvider(issuer string, options ...Option) *MetadataProvider {
 	}
 
 	metadataUrl := fmt.Sprintf("%s%s", issuer, "/.well-known/openid-configuration")
-	return &MetadataProvider{metadataUrl: metadataUrl, httpClient: opts.httpClient, clock: opts.clock, cacheTtl: opts.cacheTtl}
+	return &MetadataProvider{
+		metadataUrl: metadataUrl,
+		httpClient:  opts.httpClient,
+		clock:       opts.clock,
+		cacheTtl:    opts.cacheTtl,
+	}
 }
 
 // GetMetadata gets metadata for the specified Okta issuer.
