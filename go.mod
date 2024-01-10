@@ -3,7 +3,7 @@ module github.com/sovietaced/okta-jwt-verifier
 go 1.21.5
 
 require (
-	github.com/MicahParks/jwkset v0.5.5
+	github.com/MicahParks/jwkset v0.5.6
 	github.com/MicahParks/keyfunc/v3 v3.1.2
 	github.com/benbjohnson/clock v1.3.5
 	github.com/golang-jwt/jwt/v5 v5.2.0
@@ -22,5 +22,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
