@@ -4,7 +4,7 @@ go 1.21.5
 
 require (
 	github.com/MicahParks/jwkset v0.5.7
-	github.com/MicahParks/keyfunc/v3 v3.2.3
+	github.com/MicahParks/keyfunc/v3 v3.2.4
 	github.com/benbjohnson/clock v1.3.5
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/stretchr/testify v1.8.4
