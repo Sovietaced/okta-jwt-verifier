@@ -1,7 +1,7 @@
-github.com/MicahParks/jwkset v0.5.10 h1:TkMEDKFYAcOgLdl2o6z4mI0EDKK8YN1ip1yRi0bVdbw=
-github.com/MicahParks/jwkset v0.5.10/go.mod h1:q8ptTGn/Z9c4MwbcfeCDssADeVQb3Pk7PnVxrvi+2QY=
-github.com/MicahParks/keyfunc/v3 v3.2.4 h1:SuFGdd3HvlwEceJvlEEfjJjvOiq69hS0wqM5iMbTlaA=
-github.com/MicahParks/keyfunc/v3 v3.2.4/go.mod h1:xXfj5uRVZsOMGpjKH/AYn7V8OJb0UMQlJLP1GRBuizg=
+github.com/MicahParks/jwkset v0.5.12 h1:wEwKZXB77yHFIHBtYoawNKIUwqC1X24S8tIhWutJHMA=
+github.com/MicahParks/jwkset v0.5.12/go.mod h1:q8ptTGn/Z9c4MwbcfeCDssADeVQb3Pk7PnVxrvi+2QY=
+github.com/MicahParks/keyfunc/v3 v3.2.5 h1:eg4s2zd2nfadnAzAsv9xvJCdCfLNy4s/aSiAxRn+aAk=
+github.com/MicahParks/keyfunc/v3 v3.2.5/go.mod h1:8hmM7h/hNerfF8uC8cFVnT+afxBgh6nKRTR/0vAm5So=
 github.com/benbjohnson/clock v1.3.5 h1:VvXlSJBzZpA/zum6Sj74hxwYI2DIxRWuNIoXAzHZz5o=
 github.com/benbjohnson/clock v1.3.5/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
