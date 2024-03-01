@@ -7,7 +7,7 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.2.5
 	github.com/benbjohnson/clock v1.3.5
 	github.com/golang-jwt/jwt/v5 v5.2.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0
 	go.opentelemetry.io/otel v1.24.0
 	go.opentelemetry.io/otel/sdk v1.24.0
