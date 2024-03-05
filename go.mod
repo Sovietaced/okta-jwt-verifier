@@ -6,7 +6,7 @@ require (
 	github.com/MicahParks/jwkset v0.5.13
 	github.com/MicahParks/keyfunc/v3 v3.2.5
 	github.com/benbjohnson/clock v1.3.5
-	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0
 	go.opentelemetry.io/otel v1.24.0
