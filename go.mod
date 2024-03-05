@@ -3,7 +3,7 @@ module github.com/sovietaced/okta-jwt-verifier
 go 1.21.5
 
 require (
-	github.com/MicahParks/jwkset v0.5.12
+	github.com/MicahParks/jwkset v0.5.13
 	github.com/MicahParks/keyfunc/v3 v3.2.5
 	github.com/benbjohnson/clock v1.3.5
 	github.com/golang-jwt/jwt/v5 v5.2.0
