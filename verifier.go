@@ -41,7 +41,12 @@ func defaultOptions(issuer string) (*Options, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating default metadata provider: %w", err)
 	}
-	WithKeyfuncProvider(okta.NewKeyfuncProvider(mp))(opts)
+
+	kp, err := okta.NewKeyfuncProvider(mp)
+	if err != nil {
+		return nil, fmt.Errorf("creating new key func provider: %w", err)
+	}
+	WithKeyfuncProvider(kp)(opts)
 	WithLeeway(DefaultLeeway)(opts)
 	return opts, nil
 }

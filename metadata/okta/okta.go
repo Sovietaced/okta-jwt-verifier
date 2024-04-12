@@ -189,13 +189,7 @@ func (mp *MetadataProvider) backgroundFetchAndCache(ctx context.Context) (metada
 }
 
 func (mp *MetadataProvider) backgroundFetchLoop(ctx context.Context) {
-	// Seed cache initially
-	_, err := mp.backgroundFetchAndCache(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, fmt.Sprintf("failed to fetch and cache metadata: %s", err.Error()))
-	}
-
-	ticker := time.NewTicker(mp.cacheTtl / 2)
+	ticker := mp.clock.Ticker(mp.cacheTtl / 2)
 	defer ticker.Stop()
 	for {
 		select {

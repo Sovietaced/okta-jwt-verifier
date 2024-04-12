@@ -36,7 +36,8 @@ func TestKeyfuncProvider(t *testing.T) {
 			},
 		}
 
-		kp := NewKeyfuncProvider(mp)
+		kp, err := NewKeyfuncProvider(mp)
+		require.NoError(t, err)
 
 		keyfunc, err := kp.GetKeyfunc(ctx)
 		require.NoError(t, err)
@@ -53,7 +54,8 @@ func TestKeyfuncProvider(t *testing.T) {
 		}
 
 		clock := clock2.NewMock()
-		kp := NewKeyfuncProvider(mp, withClock(clock))
+		kp, err := NewKeyfuncProvider(mp, withClock(clock))
+		require.NoError(t, err)
 
 		keyfunc, err := kp.GetKeyfunc(ctx)
 		require.NoError(t, err)
@@ -95,7 +97,8 @@ func TestKeyfuncProvider(t *testing.T) {
 			},
 		}
 
-		kp := NewKeyfuncProvider(mp, WithHttpClient(&httpClient))
+		kp, err := NewKeyfuncProvider(mp, WithHttpClient(&httpClient))
+		require.NoError(t, err)
 
 		tracer := provider.Tracer("test")
 		spanCtx, span := tracer.Start(ctx, "test")
@@ -120,9 +123,10 @@ func TestKeyfuncProvider(t *testing.T) {
 	t.Run("get keyfunc and metadata provider returns error", func(t *testing.T) {
 		mp := errorMetadataProvider{err: fmt.Errorf("synthetic error")}
 
-		kp := NewKeyfuncProvider(&mp)
+		kp, err := NewKeyfuncProvider(&mp)
+		require.NoError(t, err)
 
-		_, err := kp.GetKeyfunc(ctx)
+		_, err = kp.GetKeyfunc(ctx)
 		require.ErrorContains(t, err, "getting metadata: synthetic error")
 	})
 
@@ -133,9 +137,10 @@ func TestKeyfuncProvider(t *testing.T) {
 			},
 		}
 
-		kp := NewKeyfuncProvider(mp)
+		kp, err := NewKeyfuncProvider(mp)
+		require.NoError(t, err)
 
-		_, err := kp.GetKeyfunc(ctx)
+		_, err = kp.GetKeyfunc(ctx)
 		require.Error(t, err)
 		require.ErrorContains(t, err, "getting or fetching keyfunc: fetching keyfunc: making http request for jwks")
 	})
