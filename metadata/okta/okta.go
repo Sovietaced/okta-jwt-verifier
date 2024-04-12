@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/benbjohnson/clock"
 	"github.com/sovietaced/okta-jwt-verifier/metadata"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -140,6 +141,9 @@ func (mp *MetadataProvider) GetMetadata(ctx context.Context) (metadata.Metadata,
 
 	if mp.fetchStrategy == Lazy {
 		return mp.lazyFetchAndCache(ctx)
+	} else if mp.fetchStrategy == Background {
+		// FIXME: Potentially make this behavior configurable?
+		return cachedMetadataCopy.m, nil
 	}
 
 	return metadata.Metadata{}, fmt.Errorf("no metadata available")
@@ -188,7 +192,7 @@ func (mp *MetadataProvider) backgroundFetchLoop(ctx context.Context) {
 	// Seed cache initially
 	_, err := mp.backgroundFetchAndCache(ctx)
 	if err != nil {
-		// FIXME: log this
+		slog.ErrorContext(ctx, fmt.Sprintf("failed to fetch and cache metadata: %s", err.Error()))
 	}
 
 	ticker := time.NewTicker(mp.cacheTtl / 2)
@@ -200,7 +204,7 @@ func (mp *MetadataProvider) backgroundFetchLoop(ctx context.Context) {
 		case <-ticker.C:
 			_, err := mp.backgroundFetchAndCache(ctx)
 			if err != nil {
-				// FIXME: log this
+				slog.ErrorContext(ctx, fmt.Sprintf("failed to fetch and cache metadata: %s", err.Error()))
 			}
 		}
 	}

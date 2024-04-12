@@ -39,6 +39,20 @@ func TestLazyMetadataProvider(t *testing.T) {
 		require.Equal(t, expectedMetadata, m)
 	})
 
+	t.Run("get metadata fails due to server error", func(t *testing.T) {
+		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(404)
+		}))
+		defer svr.Close()
+
+		mp, err := NewMetadataProvider(svr.URL)
+		require.NoError(t, err)
+
+		_, err = mp.GetMetadata(ctx)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "failed to fetch new fresh metadata:")
+	})
+
 	t.Run("get metadata and verify cached", func(t *testing.T) {
 		serverCount := 0
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +144,20 @@ func TestBackgroundMetadataProvider(t *testing.T) {
 		require.Equal(t, expectedMetadata, m)
 	})
 
+	t.Run("creating metadata provider fails due to server error", func(t *testing.T) {
+		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(404)
+		}))
+		defer svr.Close()
+
+		backgroundCtx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
+
+		_, err := NewMetadataProvider(svr.URL, WithFetchStrategy(Background), WithBackgroundCtx(backgroundCtx))
+		require.Error(t, err)
+		require.ErrorContains(t, err, "failed to seed metadata:")
+	})
+
 	t.Run("get metadata and verify cached", func(t *testing.T) {
 		serverCount := 0
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +176,46 @@ func TestBackgroundMetadataProvider(t *testing.T) {
 		_, err = mp.GetMetadata(ctx)
 		require.NoError(t, err)
 		require.Equal(t, 1, serverCount)
+
+		// Get metadata again and ensure it is cached
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 1, serverCount)
+
+		// Fast forward time and invalidate the cache
+		fakeClock.Add(10 * time.Minute)
+
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 2, serverCount)
+	})
+
+	t.Run("get metadata and verify cached after server error", func(t *testing.T) {
+		serverCount := 0
+		svrFail := false
+		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			serverCount++
+			if svrFail {
+				w.WriteHeader(404)
+			} else {
+				w.Write(fixture(t, "metadata.json"))
+			}
+		}))
+		defer svr.Close()
+
+		backgroundCtx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
+
+		fakeClock := clock.NewMock()
+		mp, err := NewMetadataProvider(svr.URL, withClock(fakeClock), WithFetchStrategy(Background), WithBackgroundCtx(backgroundCtx))
+		require.NoError(t, err)
+
+		_, err = mp.GetMetadata(ctx)
+		require.NoError(t, err)
+		require.Equal(t, 1, serverCount)
+
+		// Fail the server
+		svrFail = true
 
 		// Get metadata again and ensure it is cached
 		_, err = mp.GetMetadata(ctx)

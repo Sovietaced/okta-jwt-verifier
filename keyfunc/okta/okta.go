@@ -114,15 +114,15 @@ func (kp *KeyfuncProvider) getOrFetchKeyfunc(ctx context.Context, jwksUri string
 		return cachedKeyfuncCopy.keyfunc, nil
 	}
 
-	keyfunc, err := kp.fetchKeyfunc(ctx, jwksUri)
+	kf, err := kp.fetchKeyfunc(ctx, jwksUri)
 	if err != nil {
 		return nil, fmt.Errorf("fetching keyfunc: %w", err)
 	}
 
 	expiration := kp.clock.Now().Add(kp.cacheTtl)
-	kp.cachedKeyfunc = newCachedKeyfunc(expiration, keyfunc)
+	kp.cachedKeyfunc = newCachedKeyfunc(expiration, kf)
 
-	return keyfunc, nil
+	return kf, nil
 }
 
 func (kp *KeyfuncProvider) fetchKeyfunc(ctx context.Context, jwksUri string) (jwt.Keyfunc, error) {
