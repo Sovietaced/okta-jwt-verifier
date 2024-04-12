@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-func TestKeyfuncProvider(t *testing.T) {
+func TestLazyKeyfuncProvider(t *testing.T) {
 
 	// Generate RSA key.
 	pk, err := rsa.GenerateKey(rand.Reader, 2048)

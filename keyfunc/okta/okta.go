@@ -92,7 +92,7 @@ func newCachedKeyfunc(expiration time.Time, keyfunc jwt.Keyfunc) *cachedKeyfunc 
 	return &cachedKeyfunc{expiration: expiration, keyfunc: keyfunc}
 }
 
-// KeyfuncProvider kplements the keyfunc.KeyfuncProvider and generates JWT validating functions for Okta tokens.
+// KeyfuncProvider implements the keyfunc.KeyfuncProvider and generates JWT validating functions for Okta tokens.
 type KeyfuncProvider struct {
 	mp         metadata.Provider
 	httpClient *http.Client
