@@ -182,12 +182,17 @@ func TestBackgroundMetadataProvider(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, serverCount)
 
-		// Fast forward time and invalidate the cache
-		fakeClock.Add(10 * time.Minute)
+		require.Eventually(t, func() bool {
+			// Fast forward time and invalidate the cache
+			fakeClock.Add(mp.cacheTtl)
+			return serverCount > 1
+		}, 5*time.Second, time.Millisecond)
+
+		newServerCount := serverCount
 
 		_, err = mp.GetMetadata(ctx)
 		require.NoError(t, err)
-		require.Equal(t, 2, serverCount)
+		require.Equal(t, newServerCount, serverCount)
 	})
 
 	t.Run("get metadata and verify cached after server error", func(t *testing.T) {
@@ -222,12 +227,17 @@ func TestBackgroundMetadataProvider(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, serverCount)
 
-		// Fast forward time and invalidate the cache
-		fakeClock.Add(10 * time.Minute)
+		require.Eventually(t, func() bool {
+			// Fast forward time and invalidate the cache
+			fakeClock.Add(mp.cacheTtl)
+			return serverCount > 1
+		}, 5*time.Second, time.Millisecond)
+
+		newServerCount := serverCount
 
 		_, err = mp.GetMetadata(ctx)
 		require.NoError(t, err)
-		require.Equal(t, 2, serverCount)
+		require.Equal(t, newServerCount, serverCount)
 	})
 }
 

@@ -31,7 +31,9 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 		},
 	}
 
-	kp := okta.NewKeyfuncProvider(mp)
+	kp, err := okta.NewKeyfuncProvider(mp)
+	require.NoError(t, err)
+
 	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
 	require.NoError(t, err)
 
@@ -212,7 +214,9 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 		},
 	}
 
-	kp := okta.NewKeyfuncProvider(mp)
+	kp, err := okta.NewKeyfuncProvider(mp)
+	require.NoError(t, err)
+
 	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
 	require.NoError(t, err)
 
