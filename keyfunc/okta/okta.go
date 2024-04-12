@@ -132,10 +132,12 @@ func (kp *KeyfuncProvider) fetchKeyfunc(ctx context.Context, jwksUri string) (jw
 		return nil, fmt.Errorf("creating new http request: %w", err)
 	}
 	resp, err := kp.httpClient.Do(httpRequest)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("making http request for jwks: %w", err)
 	}
-	defer resp.Body.Close()
 
 	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
 	if !ok {

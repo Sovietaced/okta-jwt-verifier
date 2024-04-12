@@ -212,10 +212,13 @@ func (mp *MetadataProvider) fetchMetadata(ctx context.Context) (metadata.Metadat
 		return metadata.Metadata{}, fmt.Errorf("creating new http request: %w", err)
 	}
 	resp, err := mp.httpClient.Do(httpRequest)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		return metadata.Metadata{}, fmt.Errorf("making http request for metadata: %w", err)
 	}
-	defer resp.Body.Close()
 
 	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
 	if !ok {
