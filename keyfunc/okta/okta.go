@@ -114,15 +114,15 @@ func (kp *KeyfuncProvider) getOrFetchKeyfunc(ctx context.Context, jwksUri string
 		return cachedKeyfuncCopy.keyfunc, nil
 	}
 
-	keyfunc, err := kp.fetchKeyfunc(ctx, jwksUri)
+	kf, err := kp.fetchKeyfunc(ctx, jwksUri)
 	if err != nil {
 		return nil, fmt.Errorf("fetching keyfunc: %w", err)
 	}
 
 	expiration := kp.clock.Now().Add(kp.cacheTtl)
-	kp.cachedKeyfunc = newCachedKeyfunc(expiration, keyfunc)
+	kp.cachedKeyfunc = newCachedKeyfunc(expiration, kf)
 
-	return keyfunc, nil
+	return kf, nil
 }
 
 func (kp *KeyfuncProvider) fetchKeyfunc(ctx context.Context, jwksUri string) (jwt.Keyfunc, error) {
@@ -132,10 +132,12 @@ func (kp *KeyfuncProvider) fetchKeyfunc(ctx context.Context, jwksUri string) (jw
 		return nil, fmt.Errorf("creating new http request: %w", err)
 	}
 	resp, err := kp.httpClient.Do(httpRequest)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("making http request for jwks: %w", err)
 	}
-	defer resp.Body.Close()
 
 	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
 	if !ok {
