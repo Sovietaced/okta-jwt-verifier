@@ -21,11 +21,14 @@ func main() {
     ctx := context.Background()
     issuer := "https://test.okta.com"
     clientId := "test"
-    v, err := verifier.NewVerifier(issuer, clientId)
+    v, err := verifier.NewVerifier(issuer)
 	
 
     idToken := "..."
-    token, err := v.VerifyAccessToken(ctx, idToken)
+    token, err := v.VerifyIdToken(ctx, idToken)
+	
+	accessToken := "..."
+	token, err = v.VerifyAccessToken(ctx, accessToken)
 }
 
 ```
