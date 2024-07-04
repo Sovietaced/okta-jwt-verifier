@@ -1,6 +1,6 @@
 module github.com/sovietaced/okta-jwt-verifier
 
-go 1.21.5
+go 1.22
 
 require (
 	github.com/MicahParks/jwkset v0.5.18
