@@ -11,7 +11,8 @@ includes support for telemetry (ie. OpenTelemetry), minimizing verification late
 
 ### Access Token Validation
 
-```go
+```go 
+package main
 import (
     "context"
     verifier "github.com/sovietaced/okta-jwt-verifier"
@@ -20,15 +21,13 @@ import (
 func main() {
     ctx := context.Background()
     issuer := "https://test.okta.com"
-    clientId := "test"
     v, err := verifier.NewVerifier(issuer)
-	
 
     idToken := "..."
     token, err := v.VerifyIdToken(ctx, idToken)
-	
-	accessToken := "..."
-	token, err = v.VerifyAccessToken(ctx, accessToken)
+
+    accessToken := "..."
+    token, err = v.VerifyAccessToken(ctx, accessToken)
 }
 
 ```
