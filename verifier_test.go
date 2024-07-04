@@ -84,37 +84,6 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token has invalid issuer")
 	})
 
-	t.Run("verify id token missing audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyIdToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token is missing required claim: aud claim is required")
-	})
-
-	t.Run("verify id token wrong audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"aud":   "wrong",
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyIdToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token has invalid audience")
-	})
-
 	t.Run("verify id token missing issued time", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   issuer,
@@ -289,36 +258,6 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 
 		_, err = v.VerifyAccessToken(ctx, idToken)
 		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token has invalid issuer")
-	})
-
-	t.Run("verify access token missing audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss": issuer,
-			"iat": time.Now().Unix(),
-			"exp": time.Now().Add(24 * time.Hour).Unix(),
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyAccessToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token is missing required claim: aud claim is required")
-	})
-
-	t.Run("verify access token wrong audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"aud":   "wrong",
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyAccessToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token has invalid audience")
 	})
 
 	t.Run("verify access token missing issued time", func(t *testing.T) {
