@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/benbjohnson/clock"
 	"github.com/sovietaced/okta-jwt-verifier/metadata"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -70,7 +71,11 @@ func WithBackgroundCtx(ctx context.Context) Option {
 
 func defaultOptions() *Options {
 	opts := &Options{}
-	WithHttpClient(http.DefaultClient)(opts)
+
+	httpClient := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
+	WithHttpClient(&httpClient)(opts)
 	withClock(clock.New())(opts)
 	WithCacheTtl(DefaultCacheTtl)(opts)
 	WithFetchStrategy(Lazy)(opts)
