@@ -34,7 +34,7 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 	kp, err := okta.NewKeyfuncProvider(mp)
 	require.NoError(t, err)
 
-	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	v, err := NewVerifier(issuer, WithKeyfuncProvider(kp))
 	require.NoError(t, err)
 
 	t.Run("verify valid id token", func(t *testing.T) {
@@ -82,37 +82,6 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 
 		_, err = v.VerifyIdToken(ctx, idToken)
 		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token has invalid issuer")
-	})
-
-	t.Run("verify id token missing audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyIdToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token is missing required claim: aud claim is required")
-	})
-
-	t.Run("verify id token wrong audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"aud":   "wrong",
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyIdToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying id token: parsing token: token has invalid claims: token has invalid audience")
 	})
 
 	t.Run("verify id token missing issued time", func(t *testing.T) {
@@ -163,7 +132,7 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 
 	t.Run("verify id token expiration with leeway", func(t *testing.T) {
 
-		lv, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		lv, err := NewVerifier(issuer, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
 		require.NoError(t, err)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
@@ -198,7 +167,6 @@ func TestVerifierVerifyIdToken(t *testing.T) {
 
 func TestVerifierVerifyAccessToken(t *testing.T) {
 	issuer := "https://test.okta.com"
-	clientId := "test"
 
 	// Generate RSA key.
 	pk, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -217,13 +185,13 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	kp, err := okta.NewKeyfuncProvider(mp)
 	require.NoError(t, err)
 
-	v, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp))
+	v, err := NewVerifier(issuer, WithKeyfuncProvider(kp))
 	require.NoError(t, err)
 
 	t.Run("verify valid access token", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss": issuer,
-			"aud": clientId,
+			"aud": "api://default",
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Add(24 * time.Hour).Unix(),
 		})
@@ -238,7 +206,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	t.Run("verify valid access with groups claims", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":    issuer,
-			"aud":    clientId,
+			"aud":    "api://default",
 			"iat":    time.Now().Unix(),
 			"exp":    time.Now().Add(24 * time.Hour).Unix(),
 			"groups": []string{"test1", "test2"},
@@ -264,7 +232,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 
 	t.Run("verify access token missing issuer", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"aud": clientId,
+			"aud": "api://default",
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Add(24 * time.Hour).Unix(),
 		})
@@ -279,7 +247,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	t.Run("verify access token wrong issuer", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   "wrong",
-			"aud":   clientId,
+			"aud":   "api://default",
 			"iat":   time.Now().Unix(),
 			"exp":   time.Now().Add(24 * time.Hour).Unix(),
 			"nonce": 456,
@@ -292,40 +260,10 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token has invalid issuer")
 	})
 
-	t.Run("verify access token missing audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss": issuer,
-			"iat": time.Now().Unix(),
-			"exp": time.Now().Add(24 * time.Hour).Unix(),
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyAccessToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token is missing required claim: aud claim is required")
-	})
-
-	t.Run("verify access token wrong audience", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-			"iss":   issuer,
-			"aud":   "wrong",
-			"iat":   time.Now().Unix(),
-			"exp":   time.Now().Add(24 * time.Hour).Unix(),
-			"nonce": 456,
-		})
-		token.Header["kid"] = oktatest.KID
-		idToken, err := token.SignedString(pk)
-		require.NoError(t, err)
-
-		_, err = v.VerifyAccessToken(ctx, idToken)
-		require.ErrorContains(t, err, "verifying access token: parsing token: token has invalid claims: token has invalid audience")
-	})
-
 	t.Run("verify access token missing issued time", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss": issuer,
-			"aud": clientId,
+			"aud": "api://default",
 			"exp": time.Now().Add(24 * time.Hour).Unix(),
 		})
 		token.Header["kid"] = oktatest.KID
@@ -339,7 +277,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	t.Run("verify access token missing expiration", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss": issuer,
-			"aud": clientId,
+			"aud": "api://default",
 			"iat": time.Now().Unix(),
 		})
 		token.Header["kid"] = oktatest.KID
@@ -353,7 +291,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 	t.Run("verify access token expired", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss": issuer,
-			"aud": clientId,
+			"aud": "api://default",
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Unix(),
 		})
@@ -367,12 +305,12 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 
 	t.Run("verify access token expiration with leeway", func(t *testing.T) {
 
-		lv, err := NewVerifier(issuer, clientId, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
+		lv, err := NewVerifier(issuer, WithKeyfuncProvider(kp), WithLeeway(time.Minute))
 		require.NoError(t, err)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   issuer,
-			"aud":   clientId,
+			"aud":   "api://default",
 			"iat":   time.Now().Unix(),
 			"exp":   time.Now().Add(-30 * time.Second).Unix(),
 			"nonce": 456,
@@ -386,7 +324,7 @@ func TestVerifierVerifyAccessToken(t *testing.T) {
 
 		token = jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"iss":   issuer,
-			"aud":   clientId,
+			"aud":   "api://default",
 			"iat":   time.Now().Unix(),
 			"exp":   time.Now().Add(-2 * time.Minute).Unix(),
 			"nonce": 456,

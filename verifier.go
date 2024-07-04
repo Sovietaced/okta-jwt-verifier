@@ -70,11 +70,10 @@ type Verifier struct {
 	parser          *jwt.Parser
 	keyfuncProvider keyfunc.Provider
 	issuer          string
-	clientId        string
 }
 
-// NewVerifier creates a new Verifier for the specified issuer or client ID.
-func NewVerifier(issuer string, clientId string, options ...Option) (*Verifier, error) {
+// NewVerifier creates a new Verifier for the specified issuer.
+func NewVerifier(issuer string, options ...Option) (*Verifier, error) {
 	opts, err := defaultOptions(issuer)
 	if err != nil {
 		return nil, fmt.Errorf("creating default options: %w", err)
@@ -87,11 +86,10 @@ func NewVerifier(issuer string, clientId string, options ...Option) (*Verifier, 
 	parser := jwt.NewParser(
 		jwt.WithLeeway(opts.leeway),
 		jwt.WithIssuer(issuer),
-		jwt.WithAudience(clientId),
 		jwt.WithExpirationRequired(),
 	)
 
-	return &Verifier{issuer: issuer, clientId: clientId, keyfuncProvider: opts.keyfuncProvider, parser: parser}, nil
+	return &Verifier{issuer: issuer, keyfuncProvider: opts.keyfuncProvider, parser: parser}, nil
 }
 
 // VerifyIdToken verifies an Okta ID token.
