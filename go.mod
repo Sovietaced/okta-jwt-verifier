@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.5
 
 require (
-	github.com/MicahParks/jwkset v0.5.20
+	github.com/MicahParks/jwkset v0.6.0
 	github.com/MicahParks/keyfunc/v3 v3.3.5
 	github.com/benbjohnson/clock v1.3.5
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -26,6 +26,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.33.0 // indirect
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
+	golang.org/x/time v0.9.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
